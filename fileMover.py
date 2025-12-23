@@ -1,60 +1,67 @@
 import os
 import shutil
 
-# 파일 문자 및 인덱스 번호 자르기
-def slice_file_string(first_str, end_str, progress_file):
-    file_findex = progress_file.find(first_str)
-    file_findex +=1
-    file_eindex = progress_file.find(end_str)
-    target_name = progress_file[file_findex:file_eindex].upper()
-    return target_name
-
-# 메인 함수 전개
-def main():
-
-    # GUI 부분 시작점 (추후)
-    print("프로그램을 실행합니다.")
-
+# get user input | 유저 입력 (GUI)
+def get_user_input():
     print("처리할 폴더의 주소를 입력:")
-    origin_dir = input()
+    origin_path = input()
 
     print("목적지 폴더의 주소를 입력:")
-    target_dir = input()
+    target_path = input()
 
     print("첫번째 문자를 입력:")
-    first_str = input()
+    start_keyword = input()
 
     print("마지막 문자를 입력:")
-    end_str = input()
+    end_keyword = input()
 
-    # 파일 리스트 불러오기
-    try:
-        file_list = os.listdir(origin_dir)
-        dst_folder_list = os.listdir(target_dir)
-    except FileNotFoundError as error:
-        print(f"폴더를 찾지 못했어요. : {error}")
-        exit()
+    return origin_path, target_path, start_keyword, end_keyword
 
-    # 파일 리스트 구성
-    dst_file_list = {folder.upper(): folder for folder in dst_folder_list}
 
-    for file in file_list:
-        target_name = slice_file_string(first_str, end_str, file)
-        
-        if target_name in dst_file_list:
-            dst_name = dst_file_list[target_name]
-            print(dst_name + "폴더 발견")
-            src = os.path.join(origin_dir, file)
-            dst = os.path.join(target_dir, dst_name)
-            print("소스 파일 " + src + " 도착 폴더 " + dst)
+# set class FileOrganizer --> will be soon refactor 2 step
+# FileOrganizer 클래스 설정 --> 코드 리팩터링 예정
+class FileOrganizer:
+    # init class
+    def __init__(self, origin_path, target_path, start_keyword, end_keyword):
+        self.origin_path = origin_path
+        self.target_path = target_path
+        self.start_keyword = start_keyword
+        self.end_keyword = end_keyword
+        self.dst_map = self._mapping_dst_path()
 
-            try:
-                shutil.move(src, dst)
-                print(f'{src}에서 {dst}로 이동하였습니다.')
-            except shutil.Error as error:
-                print(f"파일이 중복되었어요. : {error}")
-                continue
+    # mapped target path (private) | 목표 주소 맵핑
+    def _mapping_dst_path(self):
+        dir_in_target = os.listdir(self.target_path)
+        return {folder.upper(): folder for folder in dir_in_target}
 
-# 메인 함수 선언부
+    # extract target name (private) | 목표 이름 추출
+    def _extract_target_name(self, file_name):
+        first_index = file_name.find(self.start_keyword)
+        first_index +=1
+        end_index = file_name.find(self.end_keyword)
+        return file_name[first_index:end_index].upper()
+
+    # run automation code | 자동 코드 실행
+    def run(self):
+        files_to_move = os.listdir(self.origin_path)
+        for file_name in files_to_move:
+            target_name = self._extract_target_name(file_name)
+            if target_name in self.dst_map:
+                dst_dir = self.dst_map[target_name]
+                print(target_name + "폴더 발견")
+                src_path = os.path.join(self.origin_path, file_name)
+                dst_path = os.path.join(self.target_path, dst_dir, file_name)
+                print("소스 파일 " + src_path + " 도착 폴더 " + dst_path)
+
+                try:
+                    shutil.move(src_path, dst_path)
+                    print(f'{src_path}에서 {dst_path}로 이동하였습니다.')
+                except shutil.Error as error:
+                    print(f"파일이 중복되었어요. : {error}")
+                    continue
+
+# main code | 메인 코드
 if __name__ == "__main__":
-    main()
+    origin_path, target_path, start_keyword, end_keyword = get_user_input()
+    organizer = FileOrganizer(origin_path, target_path, start_keyword, end_keyword)
+    organizer.run()
